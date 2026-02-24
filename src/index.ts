@@ -1,7 +1,7 @@
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-      if (request.method === "GET") {
-         return new Response("서버 정상 작동중");
+      if (request.method === "GET" && new URL(request.url).pathname === "/") {
+        return new Response("서버 정상 작동중");
       }
 		
 		// CORS 처리
