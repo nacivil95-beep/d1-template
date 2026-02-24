@@ -16,7 +16,7 @@ export default {
 		}
 
 		// POST /generate 만 처리
-		if (request.method === "POST" && new URL(request.url).pathname === "/generate") {
+		if (new URL(request.url).pathname === "/generate") {
 
 			const { prompt } = await request.json();
 
