@@ -18,7 +18,12 @@ export default {
 		// POST /generate 만 처리
 		if (new URL(request.url).pathname === "/generate") {
 
-			const { prompt } = await request.json();
+			let prompt = "안녕, 자기소개 해줘";
+
+        if (request.method === "POST") {
+           const body = await request.json();
+           prompt = body.prompt;
+        }
 
 			const apiKey = env.GEMINI_API_KEY;
 
