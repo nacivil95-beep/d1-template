@@ -1,57 +1,67 @@
 export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
-      if (request.method === "GET" && new URL(request.url).pathname === "/") {
-        return new Response("서버 정상 작동중");
-      }
-		
-		// CORS 처리
-		if (request.method === "OPTIONS") {
-			return new Response(null, {
-				headers: {
-					"Access-Control-Allow-Origin": "*",
-					"Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-					"Access-Control-Allow-Headers": "Content-Type",
-				},
-			});
-		}
+  async fetch(request: Request, env: Env): Promise<Response> {
 
-		// POST /generate 만 처리
-		if (new URL(request.url).pathname === "/generate") {
+    const url = new URL(request.url);
 
-			let prompt = "안녕, 자기소개 해줘";
+    // CORS 처리
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST,OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        },
+      });
+    }
 
-        if (request.method === "POST") {
-           const body = await request.json();
-           prompt = body.prompt;
+    // POST /generate 만 허용
+    if (request.method === "POST" && url.pathname === "/generate") {
+
+      try {
+        const body = await request.json();
+        const prompt = body.prompt;
+
+        if (!prompt) {
+          return new Response("Prompt is required", { status: 400 });
         }
 
-			const apiKey = env.GEMINI_API_KEY;
+        const apiKey = env.GEMINI_API_KEY;
 
-			const response = await fetch(
-				`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						contents: [
-							{
-								parts: [{ text: prompt }]
-							}
-						]
-					}),
-				}
-			);
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [{ text: prompt }]
+                }
+              ]
+            }),
+          }
+        );
 
-			const data = await response.json();
+        const data = await response.json();
 
-			return new Response(JSON.stringify(data), {
-				headers: {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*",
-				},
-			});
-		}
+        const text =
+          data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+          "No response";
 
-		return new Response("Not Found", { status: 404 });
-	},
+        return new Response(JSON.stringify({ text }), {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+
+      } catch (err) {
+        return new Response("Server Error", { status: 500 });
+      }
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
 } satisfies ExportedHandler<Env>;
